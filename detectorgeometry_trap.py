@@ -24,13 +24,13 @@ class Area:
 
     def earth_patch(self,theta_src, phi_src, theta_view):    
         earth_t = self.thetaE_nadir(theta_src)
-        earth_t_min = self.thetaE_nadir(theta_src - 2*theta_view)
-        earth_t_max = self.thetaE_nadir(theta_src + 2*theta_view)
-#         arg = 4*((self.R+self.h)**2)*np.cos(theta_src + theta_view)**2 - 4*(2*self.R*self.h+self.h**2)
-#         if arg >=0:
-#             earth_t_max = self.thetaE_nadir(theta_src + theta_view)
-#         elif arg < 0:
-#             earth_t_max = np.arccos(self.R/(self.R+self.h))
+        earth_t_min = self.thetaE_nadir(theta_src - theta_view)
+        
+        arg = (self.R+self.h) * np.sin(theta_src+ theta_view) / self.R
+        if abs(arg) <=1:
+            earth_t_max = self.thetaE_nadir(theta_src + theta_view)
+        elif abs(arg) >1:
+            earth_t_max = np.arccos(self.R/(self.R+self.h))
 
         phi_E = self.phi_src
         d_phi_E =  2*theta_view #(earth_t_max - earth_t_min)
@@ -55,7 +55,7 @@ class Area:
         t_e = np.arccos(cos_theta_e)
         return  t_e, phi_e
 
-    def view_angle_det(self, e_x,e_y,e_z,r_x,r_y,r_z):
+    def view_angle_dist_det(self, e_x,e_y,e_z,r_x,r_y,r_z):
         obs_x = 0
         obs_y = 0
         obs_z = self.R+self.h
@@ -71,28 +71,37 @@ class Area:
         point_to_obs_hat_z = point_to_obs_z / norm
 
         obs_dot = point_to_obs_hat_x*r_x+point_to_obs_hat_y*r_y+point_to_obs_hat_z*r_z
-        angle = np.arccos(obs_dot)
+        view_angle = np.arccos(obs_dot)
+        
+        zenith_dot = point_to_obs_hat_x*e_x+point_to_obs_hat_y*e_y+point_to_obs_hat_z*e_z
+        exit_angle = np.arccos(zenith_dot)
 
-        return angle
-
+        return view_angle,exit_angle, norm
+   
         ###################################
     def event_retention(self):
         earth_t_min, earth_t_max, phi_E_min, phi_E_max = self.earth_patch(self.t_src,self.phi_src, self.th_v)
+        #print earth_t_min, earth_t_max, phi_E_min, phi_E_max
         r_x, r_y, r_z = self.coords(self.t_src, self.phi_src + np.pi)
         t_e,phi_e = self.earth_locs(earth_t_min, earth_t_max, phi_E_min, phi_E_max)
         e_x,e_y,e_z = self.coords(t_e,phi_e)
-        angle = self.view_angle_det(e_x,e_y,e_z,r_x, r_y,r_z)
+        view_angle,exit_angle, norm = self.view_angle_dist_det(e_x,e_y,e_z,r_x, r_y,r_z)
         dot = self.dot_prod(e_x,e_y,e_z,r_x, r_y,r_z)
         A0 = self.A_theta_patch(earth_t_min, earth_t_max, phi_E_min, phi_E_max)
-        A_deg = A0 * 1./float(self.n) * np.sum(dot * (angle < self.th_v) * (dot>0.) )
+        A_deg = A0 * 1./float(self.n) * np.sum(dot * (view_angle < self.th_v) * (dot>0.) )
         
-        self.ret_e_x = e_x *  (angle < self.th_v) * (dot>0.)
-        self.ret_e_y = e_y *  (angle < self.th_v) * (dot>0.)
-        self.ret_e_z = e_z *  (angle < self.th_v) * (dot>0.)
-        self.ret_e_dot = dot *  (angle < self.th_v) * (dot>0.)
+        self.ret_e_x = e_x *  (view_angle < self.th_v) * (dot>0.)
+        self.ret_e_y = e_y *  (view_angle < self.th_v) * (dot>0.)
+        self.ret_e_z = e_z *  (view_angle < self.th_v) * (dot>0.)
+        self.ret_view_angle = view_angle *  (view_angle < self.th_v) * (dot>0.)
+        self.ret_exit_angle = exit_angle *  (view_angle < self.th_v) * (dot>0.)
+        self.ret_norm = norm *  (view_angle < self.th_v) * (dot>0.)
+        self.ret_e_dot = dot *  (view_angle < self.th_v) * (dot>0.)
+        
+        
         self.ret_phi_e = np.arctan(self.ret_e_y / self.ret_e_x)
         self.ret_t_e = np.arccos(self.ret_e_z)
-        return A_deg, self.t_src, self.ret_phi_e, self.ret_t_e
+        return A_deg, self.ret_phi_e, self.ret_t_e, self.ret_view_angle, self.ret_exit_angle, self.ret_norm, self.ret_e_dot
 
 
 
