@@ -24,15 +24,16 @@ class Area:
 
     def earth_patch(self,theta_src, phi_src, theta_view):    
         earth_t = self.thetaE_nadir(theta_src)
-        earth_t_min = self.thetaE_nadir(theta_src - theta_view)
-        arg = 4*((self.R+self.h)**2)*np.cos(theta_src + theta_view)**2 - 4*(2*self.R*self.h+self.h**2)
-        if arg >=0:
-            earth_t_max = self.thetaE_nadir(theta_src + theta_view)
-        elif arg < 0:
-            earth_t_max = np.arccos(self.R/(self.R+self.h))
+        earth_t_min = self.thetaE_nadir(theta_src - 2*theta_view)
+        earth_t_max = self.thetaE_nadir(theta_src + 2*theta_view)
+#         arg = 4*((self.R+self.h)**2)*np.cos(theta_src + theta_view)**2 - 4*(2*self.R*self.h+self.h**2)
+#         if arg >=0:
+#             earth_t_max = self.thetaE_nadir(theta_src + theta_view)
+#         elif arg < 0:
+#             earth_t_max = np.arccos(self.R/(self.R+self.h))
 
         phi_E = self.phi_src
-        d_phi_E =  100* (earth_t_max - earth_t_min)
+        d_phi_E =  2*theta_view #(earth_t_max - earth_t_min)
         phi_E_min = phi_E - d_phi_E
         phi_E_max = phi_E + d_phi_E
         return earth_t_min, earth_t_max, phi_E_min, phi_E_max
@@ -48,8 +49,8 @@ class Area:
         return dot
 
     def earth_locs(self,earth_t_min, earth_t_max, phi_E_min, phi_E_max):
-        cos_phi_e = np.random.uniform(np.cos(phi_E_max), np.cos(phi_E_min), self.n)
-        cos_theta_e = np.random.uniform(np.cos(earth_t_max), np.cos(earth_t_min), self.n)
+        cos_phi_e = np.random.uniform(min(np.cos(phi_E_max), np.cos(phi_E_min)),max(np.cos(phi_E_max), np.cos(phi_E_min)), self.n)
+        cos_theta_e = np.random.uniform(min(np.cos(earth_t_max), np.cos(earth_t_min)),max(np.cos(earth_t_max), np.cos(earth_t_min)), self.n)
         phi_e = np.arccos(cos_phi_e)
         t_e = np.arccos(cos_theta_e)
         return  t_e, phi_e
