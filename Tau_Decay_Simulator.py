@@ -64,9 +64,9 @@ class Tau_Decay_Simulator:
         #0 is hadronic
         #1 is electron
         if np.random.uniform(0.,1.) > self.P_e_shower:
-            return 0
+            return np.int(0)
         else:
-            return 1
+            return np.int(1)
 
     def sample_energy_fraction(self, shower_type):
         #0 is hadronic
@@ -76,15 +76,15 @@ class Tau_Decay_Simulator:
         u = np.random.uniform(0., 1.)
         if shower_type==0:
             idx = u*float(len(self.arr_h)-1.) # so we don't hit the limit
-            idx_lo = np.floor(idx)
-            idx_hi = idx_lo+1
+            idx_lo = np.int(np.floor(idx))
+            idx_hi = np.int(idx_lo+1)
             val = self.lin_interp(idx, idx_lo, idx_hi, self.arr_h[idx_lo], self.arr_h[idx_hi])
             #return self.f_hadron[self.h_shower_cut][np.random.randint(0, self.N_h_shower)]
             return val
         if shower_type==1:
             idx = u*float(len(self.arr_e)-1.) # so we don't hit the limit
-            idx_lo = np.floor(idx)
-            idx_hi = idx_lo+1
+            idx_lo = np.int(np.floor(idx))
+            idx_hi = np.int(idx_lo+1)
             val = self.lin_interp(idx, idx_lo, idx_hi, self.arr_e[idx_lo], self.arr_e[idx_hi])
             #return self.f_electron[self.e_shower_cut][np.random.randint(0, self.N_e_shower)]
             return val
