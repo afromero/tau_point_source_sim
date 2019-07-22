@@ -21,7 +21,8 @@ class Area:
         if np.degrees(self.t_src)<2:
             indicator =0
             t_max = max(e_theta)
-            Area = np.pi * (np.sin(t_max)*self.R)**2 
+            # Area = np.pi * (np.sin(t_max)*self.R)**2 
+            Area = (2*np.pi*self.R**2)*(1-np.cos(t_max))
             return Area
         else:
             indicator =1
