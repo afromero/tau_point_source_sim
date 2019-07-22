@@ -22,14 +22,14 @@ class Area:
             indicator =0
             t_max = max(e_theta)
             Area = np.pi * (np.sin(t_max)*self.R)**2 
-            return Area, 2*np.pi,0, np.sin(t_max)
+            return Area
         else:
             indicator =1
             min_phi = min(e_phi)
             max_phi = max(e_phi)
             Area = self.R**2 * (max_phi-min_phi)*( np.cos(min(e_theta)) - np.cos(max(e_theta)) )
-        return Area, indicator, max_phi, min_phi, np.cos(min(e_theta)) - np.cos(max(e_theta))
-
+        return Area
+    
     def thetaE_nadir(self,nadir): # earth angle based on nadir angle
         arg = np.arcsin((self.R+self.h) * np.sin(nadir) / self.R)
         if math.isnan(arg)==True:
@@ -105,7 +105,7 @@ class Area:
     def event_retention(self):
         earth_t = self.thetaE_nadir(self.t_src)
         earth_t_min, earth_t_max, phi_E_min, phi_E_max = self.earth_patch(self.t_src,self.phi_src, self.th_v)
-        print phi_E_min, phi_E_max
+        #print phi_E_min, phi_E_max
         r_x, r_y, r_z = self.coords(self.t_src, self.phi_src + np.pi) 
         t_e,phi_e = self.earth_locs(earth_t_min, earth_t_max, phi_E_min, phi_E_max)
         e_x,e_y,e_z = self.coords(t_e,phi_e)
@@ -126,8 +126,8 @@ class Area:
         ret_t_e = t_e *  (view_angle < self.th_v) * (dot>0.)
         ret_t_e=ret_t_e[np.nonzero(ret_t_e)]
         
-        A0, indicator, p1, p2, diff2= self.A_theta_patch(earth_t,t_e,phi_e)
-        print A0, indicator, p1,p2, diff2
+        A0= self.A_theta_patch(earth_t,t_e,phi_e)
+        #print A0, indicator, p1,p2, diff2
         A_deg = A0 *1./float(self.n) *  np.sum(dot * (view_angle < self.th_v) * (dot>0.) ) 
         
         return A_deg, ret_phi_e, ret_t_e, ret_view_angle, ret_exit_angle, ret_norm, ret_dot

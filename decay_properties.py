@@ -1,8 +1,9 @@
 
 import numpy as np
-from Tau_Exit_Simulator_2 import Tau_Exit_Simulator
+import Tau_Exit_Simulator_2 as TauExitSimulator
 import Tau_Decay_Simulator as TauDecaySimulator
 reload(TauDecaySimulator)
+reload(TauExitSimulator)
 from scipy import stats
 
 class tau_event:
@@ -31,19 +32,18 @@ class tau_event:
         else:
             self.TEScall = '3e+'+str(self_e_nu)
  
-        self.TES = Tau_Exit_Simulator('./high_statistics/'+self.ice+'km_ice_midCS_stdEL/LUT_'+self.TEScall+'_eV.npz')
+        self.TES = TauExitSimulator.Tau_Exit_Simulator('./high_statistics/'+self.ice+'km_ice_midCS_stdEL/LUT_'+self.TEScall+'_eV.npz')
         self.TDS = TauDecaySimulator.Tau_Decay_Simulator()
     
     def E_tau(self):
         vals =np.asarray([])
         for i in range(self.N):
-            print np.degrees(self.exit[i])-90
-            vals = np.append(vals,self.TES.sample_energies_th_exit(np.degrees(self.exit[i])-90))
+            vals = np.append(vals,self.TES.sample_energies_th_exit(np.degrees(self.exit[i])))
         return vals
     
     def decay_distance_det(self,tau_energies):
         decay_dist = self.TDS.sample_range(10**(tau_energies), len(tau_energies))
-        print decay_dist #return decay_dist
+        return decay_dist
     
     def event_energy_cut(self):
         tau_energy = self.E_tau()
@@ -128,7 +128,7 @@ class tau_event:
         ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_rho, ret_decay_dist = self.event_energy_cut()
         ret_fractions,ret_types = self.E_shower(ret_tau_energy)
         ret_view_angle = self.view_angle_det(ret_t_e,ret_phi_e,ret_decay_dist,self.h,self.R)
-        return ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_decay_dist, ret_p_decay ,ret_view_angle, ret_fractions,ret_types
+        return ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_decay_dist, ret_view_angle, ret_fractions,ret_types
     
     
 ##########
