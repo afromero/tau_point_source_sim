@@ -17,12 +17,18 @@ class Area:
         self.theta_e_hor = np.arccos(self.cos_theta_e_hor)
         
         ###################################
-    def A_theta_patch(self,earth_t,t_min,t_max,phi_min,phi_max):
-        if np.cos(t_min) == np.cos(t_max):
+    def A_theta_patch(self,earth_t,e_theta,e_phi):
+        if np.degrees(self.t_src)<2:
+            indicator =0
+            t_max = max(e_theta)
             Area = np.pi * (np.sin(t_max)*self.R)**2 
+            return Area, 2*np.pi,0, np.sin(t_max)
         else:
-            Area = self.R**2 * (phi_max-phi_min)*(np.cos(t_min) - np.cos(t_max))
-        return Area
+            indicator =1
+            min_phi = min(e_phi)
+            max_phi = max(e_phi)
+            Area = self.R**2 * (max_phi-min_phi)*( np.cos(min(e_theta)) - np.cos(max(e_theta)) )
+        return Area, indicator, max_phi, min_phi, np.cos(min(e_theta)) - np.cos(max(e_theta))
 
     def thetaE_nadir(self,nadir): # earth angle based on nadir angle
         arg = np.arcsin((self.R+self.h) * np.sin(nadir) / self.R)
@@ -49,8 +55,9 @@ class Area:
         if np.degrees(theta_src)<2:
             phi_E_min = 0
             phi_E_max = 2*np.pi
-        elif arg2<2: 
-            d_phi_E = arg2 * (40/np.degrees(theta_src))
+        else: 
+            #d_phi_E = arg2 * (40/np.degrees(theta_src))
+            d_phi_E = 1.5*theta_view
             phi_E_min = phi_E - d_phi_E
             phi_E_max = phi_E + d_phi_E
         return earth_t_min, earth_t_max, phi_E_min, phi_E_max
@@ -98,32 +105,30 @@ class Area:
     def event_retention(self):
         earth_t = self.thetaE_nadir(self.t_src)
         earth_t_min, earth_t_max, phi_E_min, phi_E_max = self.earth_patch(self.t_src,self.phi_src, self.th_v)
+        print phi_E_min, phi_E_max
         r_x, r_y, r_z = self.coords(self.t_src, self.phi_src + np.pi) 
         t_e,phi_e = self.earth_locs(earth_t_min, earth_t_max, phi_E_min, phi_E_max)
-        print t_e, phi_e
         e_x,e_y,e_z = self.coords(t_e,phi_e)
         view_angle, exit_angle, flight_path = self.view_angle_dist_det(e_x,e_y,e_z,r_x, r_y,r_z)
         dot = self.dot_prod(e_x,e_y,e_z,r_x, r_y,r_z)
-        A0 = self.A_theta_patch(earth_t,earth_t_min, earth_t_max, phi_E_min, phi_E_max)
-        A_deg = A0 *1./float(self.n) *  np.sum(dot * (view_angle < self.th_v) * (dot>0.) ) 
-        
-        ret_e_x = e_x #*  (view_angle < self.th_v) * (dot>0.)
-        ret_e_x=ret_e_x[np.nonzero(ret_e_x)]
-        ret_e_y = e_y #*  (view_angle < self.th_v) * (dot>0.)
-        ret_e_y=ret_e_y[np.nonzero(ret_e_y)]
-        ret_e_z = e_z #*  (view_angle < self.th_v) * (dot>0.)
-        ret_e_z=ret_e_z[np.nonzero(ret_e_z)]
-        ret_view_angle = view_angle #*  (view_angle < self.th_v) * (dot>0.)
+      
+        ret_view_angle = view_angle *  (view_angle < self.th_v) * (dot>0.)
         ret_view_angle=ret_view_angle[np.nonzero(ret_view_angle)]
-        ret_exit_angle = exit_angle #*  (view_angle < self.th_v) * (dot>0.)
+        ret_exit_angle = exit_angle *  (view_angle < self.th_v) * (dot>0.)
         ret_exit_angle=ret_exit_angle[np.nonzero(ret_exit_angle)]
-        ret_norm = flight_path #*  (view_angle < self.th_v) * (dot>0.)
+        ret_norm = flight_path *  (view_angle < self.th_v) * (dot>0.)
         ret_norm=ret_norm[np.nonzero(ret_norm)]
-        ret_dot = dot #*  (view_angle < self.th_v) * (dot>0.)
+        ret_dot = dot *  (view_angle < self.th_v) * (dot>0.)
         ret_dot=ret_dot[np.nonzero(ret_dot)]
         
-        ret_phi_e = np.arctan(ret_e_y / ret_e_x)
-        ret_t_e = np.arccos(ret_e_z)
+        ret_phi_e = phi_e*  (view_angle < self.th_v) * (dot>0.)
+        ret_phi_e=ret_phi_e[np.nonzero(ret_phi_e)]
+        ret_t_e = t_e *  (view_angle < self.th_v) * (dot>0.)
+        ret_t_e=ret_t_e[np.nonzero(ret_t_e)]
+        
+        A0, indicator, p1, p2, diff2= self.A_theta_patch(earth_t,t_e,phi_e)
+        print A0, indicator, p1,p2, diff2
+        A_deg = A0 *1./float(self.n) *  np.sum(dot * (view_angle < self.th_v) * (dot>0.) ) 
         
         return A_deg, ret_phi_e, ret_t_e, ret_view_angle, ret_exit_angle, ret_norm, ret_dot
 
