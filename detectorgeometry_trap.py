@@ -17,12 +17,12 @@ class Area:
         self.theta_e_hor = np.arccos(self.cos_theta_e_hor)
         
         ###################################
-    def A_theta_patch(self,earth_t,e_theta,e_phi):
+    def A_theta_patch(self,e_theta,e_phi):
         if np.degrees(self.t_src)<2:
             indicator =0
             t_max = max(e_theta)
             # Area = np.pi * (np.sin(t_max)*self.R)**2 
-            Area = (2*np.pi*self.R**2)*(1-np.cos(t_max))
+            Area = (2*np.pi*self.R**2)*(1-np.cos(t_max)) #t_max
             return Area
         else:
             indicator =1
@@ -74,9 +74,9 @@ class Area:
         return dot
 
     def earth_locs(self,earth_t_min, earth_t_max, phi_E_min, phi_E_max):
-        cos_theta_e = np.random.uniform(min(np.cos(earth_t_max+0.2), np.cos(earth_t_min+0.2)),max(np.cos(earth_t_max+0.2), np.cos(earth_t_min+0.2)), self.n)
+        cos_theta_e = np.random.uniform(min(np.cos(earth_t_max), np.cos(earth_t_min)),max(np.cos(earth_t_max), np.cos(earth_t_min)), self.n)
         phi_e = np.random.uniform(0,2*np.pi, self.n)
-        t_e = np.arccos(cos_theta_e)-0.2
+        t_e = np.arccos(cos_theta_e)
         return  t_e, phi_e
 
     def view_angle_dist_det(self, e_x,e_y,e_z,r_x,r_y,r_z):
@@ -106,7 +106,6 @@ class Area:
     def event_retention(self):
         earth_t = self.thetaE_nadir(self.t_src)
         earth_t_min, earth_t_max, phi_E_min, phi_E_max = self.earth_patch(self.t_src,self.phi_src, self.th_v)
-        #print phi_E_min, phi_E_max
         r_x, r_y, r_z = self.coords(self.t_src, self.phi_src + np.pi) 
         t_e,phi_e = self.earth_locs(earth_t_min, earth_t_max, phi_E_min, phi_E_max)
         e_x,e_y,e_z = self.coords(t_e,phi_e)
@@ -127,8 +126,7 @@ class Area:
         ret_t_e = t_e *  (view_angle < self.th_v) * (dot>0.)
         ret_t_e=ret_t_e[np.nonzero(ret_t_e)]
         
-        A0= self.A_theta_patch(earth_t,t_e,phi_e)
-        #print A0, indicator, p1,p2, diff2
+        A0= self.A_theta_patch(t_e,phi_e)
         A_deg = A0 *1./float(self.n) *  np.sum(dot * (view_angle < self.th_v) * (dot>0.) ) 
         
         return A_deg, ret_phi_e, ret_t_e, ret_view_angle, ret_exit_angle, ret_norm, ret_dot
