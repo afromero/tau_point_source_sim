@@ -9,7 +9,7 @@ from scipy import stats
 class tau_event:
 
     # initialization
-    def __init__(self, theta_src, ice, E_cut, e_dot, phi_e, t_e, rho, E_nu,h,R,view_cut, exit_angles):
+    def __init__(self, theta_src, ice, E_cut, e_dot, phi_e, t_e, rho, E_nu,h,R,view_cut, exit_angles, A_g):
         self.N = len(e_dot)
         self.theta_src = theta_src
         self.ice = str(int(ice))+'.0'
@@ -24,9 +24,7 @@ class tau_event:
         self.R = R
         self.th_v = view_cut
         self.exit = exit_angles
-        self.cos_theta_e_hor = self.R/(self.R+self.h)
-        self.theta_e_hor = np.arccos(self.cos_theta_e_hor)
-        self.A0 = (2*np.pi*self.R**2)*(1-self.cos_theta_e_hor)
+        self.A_g = A_g
         if np.floor(E_nu)==np.rint(E_nu):
             self.TEScall = '1e+'+str(self_e_nu)
         else:
@@ -38,7 +36,10 @@ class tau_event:
     def E_tau(self):
         vals =np.asarray([])
         for i in range(self.N):
-            vals = np.append(vals,self.TES.sample_energies_th_exit(np.degrees(self.exit[i])))
+            try:
+                vals = np.append(vals,self.TES.sample_energies_th_exit(np.degrees(self.exit[i])))
+            except:
+                vals =np.append(vals,0)
         return vals
     
     def decay_distance_det(self,tau_energies):
@@ -49,28 +50,38 @@ class tau_event:
         tau_energy = self.E_tau()
         decay_dist= self.decay_distance_det(tau_energy)
 
-        cut_tau_energy = tau_energy *  (tau_energy > self.e_cut) * (decay_dist < self.norm)
+        cut_tau_energy = tau_energy #* (tau_energy > self.e_cut) * (decay_dist < self.norm)
         cut_tau_energy=cut_tau_energy[np.nonzero(cut_tau_energy)]
         
-        cut_decay_dist = decay_dist *  (tau_energy > self.e_cut) * (decay_dist < self.norm)
+        cut_decay_dist = decay_dist #* (tau_energy > self.e_cut) * (decay_dist < self.norm)
         cut_decay_dist=cut_decay_dist[np.nonzero(cut_decay_dist)]
         
-        cut_e_dot = self.e_dot*  (tau_energy > self.e_cut) * (decay_dist < self.norm)
+        cut_e_dot = self.e_dot #* (tau_energy > self.e_cut) * (decay_dist < self.norm)
         cut_e_dot=cut_e_dot[np.nonzero(cut_e_dot)]
         
-        cut_phi_e = self.phi_e*  (tau_energy > self.e_cut) * (decay_dist < self.norm)
+        cut_phi_e = self.phi_e #* (tau_energy > self.e_cut) * (decay_dist < self.norm)
         cut_phi_e=cut_phi_e[np.nonzero(cut_phi_e)]
         
-        cut_t_e = self.t_e*  (tau_energy > self.e_cut) * (decay_dist < self.norm)
+        cut_t_e = self.t_e #* (tau_energy > self.e_cut) * (decay_dist < self.norm)
         cut_t_e= cut_t_e[np.nonzero(cut_t_e)]
         
-        cut_rho = self.norm*(tau_energy > self.e_cut) * (decay_dist < self.norm)
+        cut_rho = self.norm #* (tau_energy > self.e_cut) * (decay_dist < self.norm)
         cut_rho=cut_rho[np.nonzero(cut_rho)]
         
-        return cut_e_dot, cut_phi_e, cut_t_e, cut_tau_energy, cut_rho, cut_decay_dist
+        cut_exit = self.exit #* (tau_energy > self.e_cut) * (decay_dist < self.norm)
+        cut_exit=cut_exit[np.nonzero(cut_exit)]
+        
+        return cut_e_dot, cut_phi_e, cut_t_e, cut_tau_energy, cut_rho, cut_decay_dist, cut_exit
     
-    def P_exit(self):
-        exit_p_arr = self.TES.P_exit_th_exit(np.degrees(self.exit[i]))
+    def P_exit(self,exit_angle_arr):
+        exit_p_arr =[]
+        for i in range(len(exit_angle_arr)):
+            try:
+                val= self.TES.P_exit_th_exit(np.degrees(exit_angle_arr[i]))
+                exit_p_arr.append(val)
+            except:
+                val = 0 
+                exit_p_arr.append(val)
         return exit_p_arr
     
 #     def P_decay(self,rho,decay_distances):
@@ -125,17 +136,21 @@ class tau_event:
         return angle
     
     def event_retention(self):
-        ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_rho, ret_decay_dist = self.event_energy_cut()
+        ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_rho, ret_decay_dist, ret_exit = self.event_energy_cut()
         ret_fractions,ret_types = self.E_shower(ret_tau_energy)
-        ret_view_angle = self.view_angle_det(ret_t_e,ret_phi_e,ret_decay_dist,self.h,self.R)
-        return ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_decay_dist, ret_view_angle, ret_fractions,ret_types
+        ret_p_exit = self.P_exit(ret_exit)
+        #ret_view_angle = self.view_angle_det(ret_t_e,ret_phi_e,ret_decay_dist,self.h,self.R)
+        return ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_decay_dist, ret_fractions,ret_types, ret_p_exit #, ret_view_angle
     
     
 ##########
     def degree_eff_area(self):
-        ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_decay_dist, ret_p_decay ,ret_view_angle = self.event_retention()
-        N = len(ret_e_dot)
-        self.A_deg = self.A0 * 1./float(N) * np.sum(ret_e_dot * (ret_view_angle < self.th_v) )
+        ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_decay_dist,  ret_fractions,ret_types, ret_p_exit = self.event_retention()
+        # print np.sum((ret_view_angle < self.th_v))
+        try:
+            self.A_deg = self.A_g  * np.sum(ret_p_exit * ret_e_dot )#* np.sum((ret_view_angle < self.th_v))
+        except:
+            self.A_deg = 0
         return self.A_deg
 
 

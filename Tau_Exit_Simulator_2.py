@@ -94,11 +94,11 @@ class Tau_Exit_Simulator:
                 val = self.data_array[0]
             #print idx, idx_lo, idx_hi, val, self.data_array[data_index][int(idx_lo)], self.data_array[data_index][int(idx_hi)]
         if len(self.data_array[data_index])==1:
-            print '\n!!!! WARNING !!!!'
-            print 'len(self.data_array[data_index])=',len(self.data_array[data_index])
-            print 'self.data_array[data_index] = ', self.data_array[data_index]
-            print 'returning self.data_array[data_index][0] = ', self.data_array[data_index][0]
-            val = self.data_array[data_index][0]
+#             print '\n!!!! WARNING !!!!'
+#             print 'len(self.data_array[data_index])=',len(self.data_array[data_index])
+#             print 'self.data_array[data_index] = ', self.data_array[data_index]
+#             print 'returning self.data_array[data_index][0] = ', self.data_array[data_index][0]
+             val = self.data_array[data_index][0]
         return val
     
 #     def P_exit_pathlength(self, path_len_m_val):
