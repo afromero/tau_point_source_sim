@@ -26,10 +26,10 @@ class tau_event:
         self.view = view_angles
         self.exit = exit_angles
         self.A_g = A_g
-        if np.floor(E_nu)==np.rint(E_nu):
+        if np.floor(E_nu)-E_nu == 0:
             self.TEScall = '1e+'+str(self_e_nu)
         else:
-            self.TEScall = '3e+'+str(self_e_nu)
+            self.TEScall = '3e+'+str(int(np.floor(E_nu)))
  
         self.TES = TauExitSimulator.Tau_Exit_Simulator('./high_statistics/'+self.ice+'km_ice_midCS_stdEL/LUT_'+self.TEScall+'_eV.npz')
         self.TDS = TauDecaySimulator.Tau_Decay_Simulator()
@@ -45,6 +45,7 @@ class tau_event:
     
     def decay_distance_det(self,tau_energies):
         decay_dist = self.TDS.sample_range(10**(tau_energies), len(tau_energies))
+        print decay_dist
         return decay_dist
     
     def event_energy_cut(self):
@@ -107,53 +108,54 @@ class tau_event:
                 shower_types.append("e")
         return fractions, shower_types
     
-#     def view_angle_det(self,earth_theta,earth_phi,d,h,R):
-#         obs_x = 0
-#         obs_y = 0
-#         h_decay = d * np.cos(self.exit)
-#         h_eff = h - h_decay
-#         obs_z = R+h_eff
+    def decay_angle_alt(self,earth_theta,earth_phi,d,h,R, exit):
+        obs_x = 0
+        obs_y = 0
+        h_decay = d * np.cos(exit)
+        h_eff = h - h_decay
+        obs_z = R+h_eff
         
-#         chord = (R*np.sin(earth_theta) - d*np.sin(self.exit)) 
-#         earth_theta_eff = np.arcsin(chord /R)
-#         e_x_eff = R*np.sin(earth_theta_eff) * np.cos(earth_phi)
-#         e_y_eff = R*np.sin(earth_theta_eff) * np.sin(earth_phi)
-#         e_z_eff = R*np.cos(earth_theta_eff) 
+        chord = (R*np.sin(earth_theta) - d*np.sin(exit)) 
+        earth_theta_eff = np.arcsin(chord /R)
+        e_x_eff = R*np.sin(earth_theta_eff) * np.cos(earth_phi)
+        e_y_eff = R*np.sin(earth_theta_eff) * np.sin(earth_phi)
+        e_z_eff = R*np.cos(earth_theta_eff) 
         
-#         point_to_obs_x = obs_x - e_x_eff
-#         point_to_obs_y = obs_y - e_y_eff
-#         point_to_obs_z = obs_z - e_z_eff
+        point_to_obs_x = obs_x - e_x_eff
+        point_to_obs_y = obs_y - e_y_eff
+        point_to_obs_z = obs_z - e_z_eff
         
-#         norm = np.sqrt(point_to_obs_x**2 + point_to_obs_y**2 + point_to_obs_z**2)
+        norm = np.sqrt(point_to_obs_x**2 + point_to_obs_y**2 + point_to_obs_z**2)
         
-#         point_to_obs_hat_x = point_to_obs_x / norm
-#         point_to_obs_hat_y = point_to_obs_y / norm
-#         point_to_obs_hat_z = point_to_obs_z / norm
+        point_to_obs_hat_x = point_to_obs_x / norm
+        point_to_obs_hat_y = point_to_obs_y / norm
+        point_to_obs_hat_z = point_to_obs_z / norm
         
-#         r_x = np.sin(self.theta_src) * np.cos(self.phi_src)
-#         r_y = np.sin(self.theta_src) * np.sin(self.phi_src)
-#         r_z = np.cos(self.theta_src) 
+        r_x = np.sin(self.theta_src) * np.cos(self.phi_src)
+        r_y = np.sin(self.theta_src) * np.sin(self.phi_src)
+        r_z = np.cos(self.theta_src) 
         
-#         obs_dot = point_to_obs_hat_x*r_x+point_to_obs_hat_y*r_y+point_to_obs_hat_z*r_z
-#         angle = np.arccos(obs_dot)
+        obs_dot = point_to_obs_hat_x*r_x+point_to_obs_hat_y*r_y+point_to_obs_hat_z*r_z
+        angle = np.arccos(obs_dot)
    
-#         return angle
+        return angle, norm
     
     def event_retention(self):
-        ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_rho, ret_decay_dist, ret_exit, ret_view = self.event_energy_cut()
+        ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_exit, ret_view = self.event_energy_cut()
         ret_fractions,ret_types = self.E_shower(ret_tau_energy)
         ret_p_exit = self.P_exit(ret_exit)
-        return ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_rho,ret_decay_dist, ret_exit, ret_view, ret_fractions,ret_types, ret_p_exit
+        ret_decay_angle, ret_decay_obs = self.decay_angle_alt(ret_t_e,ret_phi_e,ret_exit_decay,self.h,self.R, ret_exit)
+        return ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs,ret_exit, ret_view, ret_decay_angle, ret_fractions,ret_types, ret_p_exit
     
     
 ##########
     def degree_eff_area(self):
-        ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_rho,ret_decay_dist, ret_exit, ret_view, ret_fractions,ret_types, ret_p_exit = self.event_retention()
-        # print np.sum((ret_view_angle < self.th_v))
+        ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs, ret_exit, ret_view, ret_decay_angle, ret_fractions,ret_types, ret_p_exit = self.event_retention()
+
         try:
-            self.A_deg = self.A_g  * np.sum(ret_p_exit * ret_e_dot )#* np.sum((ret_view_angle < self.th_v))
+            A_deg = self.A_g  * np.sum(ret_p_exit)
         except:
-            self.A_deg = 0
-        return self.A_deg
+            A_deg = 0
+        return A_deg, ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs, ret_exit, ret_view, ret_decay_angle, ret_fractions,ret_types, ret_p_exit
 
 

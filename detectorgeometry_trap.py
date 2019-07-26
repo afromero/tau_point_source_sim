@@ -5,12 +5,12 @@ import math
 class Area:
 
     # initialization
-    def __init__(self, theta_src, h, R, theta_view, N):
+    def __init__(self, theta_src,phi_src, h, R, theta_view, N):
         self.t_src = theta_src
         self.h = h
         self.R = R
         self.th_v = theta_view
-        self.phi_src = np.radians(180)
+        self.phi_src = phi_src
         self.n = N
         
         self.cos_theta_e_hor = self.R/(self.R+self.h)
