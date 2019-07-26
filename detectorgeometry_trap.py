@@ -10,7 +10,7 @@ class Area:
         self.h = h
         self.R = R
         self.th_v = theta_view
-        self.phi_src = np.radians(0)
+        self.phi_src = np.radians(180)
         self.n = N
         
         self.cos_theta_e_hor = self.R/(self.R+self.h)
