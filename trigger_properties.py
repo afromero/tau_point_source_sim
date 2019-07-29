@@ -1,25 +1,32 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.axes as ax
+import matplotlib as mpl
 import sys
 sys.path.append('nutau_sim/03_Detector')
 sys.path.append('nutau_sim/applications/ANITA_upper_bound')
 import tau_Shower_Efield_ANITA_Sim_lib  as RF_functions
 reload(RF_functions)
+import decay_properties as decay
+reload(decay)
 
 class event_detection:
     def __init__(self, A_g, f_lo, f_high, Gain_dB, Nphased,
-                 exit_angles,view_angles, decay_angle, view_cut,
-                 ret_exit_obs,ret_exit_decay, ret_decay_obs,
-                 rho, E_t, R, ice, h, e_theta, e_phi, src_theta, src_phi): 
+                 exit_angles,view_angles, decay_angle, ret_decay_alt, view_cut,
+                 ret_exit_obs, ret_exit_decay, ret_decay_obs,
+                 E_t, R, ice, h, e_theta, e_phi, src_theta, src_phi): 
 
         self.N = len(exit_angles)
         self.A_ret = A_g
         self.zenith_angle_deg = np.degrees(exit_angles)
         self.view_angle_deg = np.degrees(view_angles)
+        self.decay_angles = np.degrees(decay_angle)
         self.view_cut = view_cut #3.16
         self.exit_obs = ret_exit_obs
         self.exit_decay = ret_exit_decay
         self.decay_obs = ret_decay_obs
         self.decay_view_angle = decay_angle
+        self.decay_alt = ret_decay_alt
         
         self.EFIELD_LUT_file_name = "anita_generic_parameterization.npz"
         self.tau_energy = E_t
@@ -70,24 +77,31 @@ class event_detection:
         x_exit, y_exit, z_exit = self.R * x_exit, self.R *y_exit, self.R *z_exit
         k_x, k_y, k_z = self.coords(self.src_theta, self.src_phi)
         x_det, y_det, z_det = 0,0,self.R + self.h 
-        print self.exit_decay
-        x_decay, y_decay, z_decay, decay_view_angle, dist_decay_to_detector = self.decay_point_geom_loop(k_x, k_y, k_z, 
-                                                                                                    x_exit, y_exit, z_exit,
-                                                                                                    self.exit_decay, 
-                                                                                                    x_det, y_det, z_det)
-        #zhs_decay_altitude = self.get_altitude(x_decay, y_decay, z_decay, self.R+2.0) 
-        zhs_decay_altitude = 2+self.exit_decay* np.sin(np.pi/2 - np.radians(self.zenith_angle_deg))
-        zenith_angle_decay = self.get_zenith_angle(k_x, k_y, k_z, x_decay, y_decay, z_decay) 
+        # print self.exit_decay
+#         x_decay, y_decay, z_decay, decay_view_angle, dist_decay_to_detector = self.decay_point_geom_loop(k_x, k_y, k_z, 
+#                                                                                                     x_exit, y_exit, z_exit,
+#                                                                                                     self.exit_decay, 
+#                                                                                                     x_det, y_det, z_det)
+        
+#         zhs_decay_altitude = self.get_altitude(x_decay, y_decay, z_decay, self.R+self.zhaires_sim_icethick)         
+        
+#         zenith_angle_decay = self.get_zenith_angle(k_x, k_y, k_z, x_decay, y_decay, z_decay) 
         parm_2d =self.load_efield_parameterization(self.EFIELD_LUT_file_name)
-        
-        print "decay alt", zhs_decay_altitude
-        
+       
+ 
+#         Peak_Efield, Theta_Peak = self.efield_anita_generic_parameterization_decay_zenith(pow(10, self.tau_energy),
+#                                                                                           zhs_decay_altitude,
+#                                                                                           np.degrees(zenith_angle_decay),  
+#                                                                                           dist_decay_to_detector, 
+#                                                                                           np.degrees(decay_view_angle), 
+#                                                                                           parm_2d)
+      
         Peak_Efield, Theta_Peak = self.efield_anita_generic_parameterization_decay_zenith(pow(10, self.tau_energy),
-                                                                                          zhs_decay_altitude,
-                                                                                          np.degrees(zenith_angle_decay),  
-                                                                                          dist_decay_to_detector, 
-                                                                                          np.degrees(decay_view_angle), 
-                                                                                          parm_2d)
+                                                                                  self.decay_alt,
+                                                                                  self.zenith_angle_deg,
+                                                                                  np.degrees(self.decay_view_angle),      
+                                                                                  parm_2d)
+      
        
     #energy, decay_altitude, zenith_exit_deg,distance_shower_to_detector, theta_view, parm_2d
     
@@ -98,12 +112,20 @@ class event_detection:
         Peak_Voltage_Threshold = self.E_to_V_signal(self.Epk_to_pk_threshold, self.Gain_dB, 
                                                self.Z_A,self.Z_L,self.Nphased) / self.Vpk_to_Vpkpk_conversion
         
-        decay_delta_view_angle = np.abs(Theta_Peak - decay_view_angle)
+        decay_delta_view_angle = np.abs(Theta_Peak - self.decay_angles)
         
         RF_area = self.trigger(self.Peak_Voltage_SNR, self.Vpk_to_Vpkpk_conversion, Peak_Voltage, 
                                Noise_Voltage,Peak_Voltage_Threshold,self.P_trig, 
                                decay_delta_view_angle, self.Max_Delta_Theta_View)
+        
         return RF_area
+
+        
+#         self.voltage_test(self.Peak_Voltage_SNR, self.Vpk_to_Vpkpk_conversion, Peak_Voltage, 
+#                                Noise_Voltage,Peak_Voltage_Threshold,self.P_trig, 
+#                                decay_delta_view_angle, self.Max_Delta_Theta_View)
+       
+    
 
 ####################################################################################################
 
@@ -201,7 +223,6 @@ class event_detection:
         decay_view_angle= np.zeros(self.N)
         dist_decay_to_detector= np.zeros(self.N)
         for k in range(self.N):
-           
             x_decay[k], y_decay[k], z_decay[k], decay_view_angle[k], dist_decay_to_detector[k] = self.decay_point_geom(k_x, k_y, k_z, x_exit[k], y_exit[k], z_exit[k], x_det, y_det, z_det, self.exit_obs[k])
         return x_decay, y_decay, z_decay, decay_view_angle, dist_decay_to_detector
     
@@ -239,8 +260,12 @@ class event_detection:
             indices[bound_ind] = -1
         return indices
 
+#     def efield_anita_generic_parameterization_decay_zenith(self, energy, decay_altitude, zenith_exit_deg,
+#                                                            distance_shower_to_detector, theta_view, parm_2d):
     def efield_anita_generic_parameterization_decay_zenith(self, energy, decay_altitude, zenith_exit_deg,
-                                                           distance_shower_to_detector, theta_view, parm_2d):
+                                                           theta_view, parm_2d):
+        
+        #MAIN
         # Parameterization for a 10^17 eV tau shower at zenith angle of 60deg / emergence angle 30deg
         # ground elevation of 3 km, detector altitude of 37 km
         #
@@ -251,29 +276,69 @@ class event_detection:
 
         escaled = np.zeros(len(energy))
         theta_peak = np.zeros(len(energy))
+        
+        zhaires_decay_obs = self.decay_dist_det()
         for i in range(len(theta_view)):
             if decay_altitude[i] >= 0: # if the decay altitude < 0, leave the electric field at 0
                 # find the nearest neighbor for both the zenith angle at the exit point and the decay altitude
                 i_ze = self.find_nearest(zenith_list, zenith_exit_deg[i])[0]
                 i_d  = self.find_nearest(decay_altitude_list, decay_altitude[i], lower_bound = 0)[0]
                 
+#                 self.zenith_list = np.array([50, 55, 60, 65, 70, 75, 80, 85, 87, 89])
+#                 self.decay_altitude_list = np.array([0,1,2,3,4,5,6,7,8,9])
+                
                 # if the decay altitude is < 0, then throw this event out
                 if i_d >= 0:
                     nearest_zenith_angle = zenith_list[i_ze]
                     nearest_decay_altitude = decay_altitude_list[i_d]
+                    #print zenith_exit_deg[i], nearest_zenith_angle
+                    
                     parms = parm_2d[i_ze, i_d]
 
                     epeak = self.lorentzian_gaussian_background_func(theta_view[i], *parms)
+                    
                     # Distance from the shower to the detector for the parameterized LDFs 
                     # at different decay altitudes and decay zenith angles
-                    r_zhaires_tau_shower = self.get_distance_decay_to_detector_zenith_exit(self.zhaires_sim_icethick,
-                                                                                      nearest_decay_altitude,
-                                                                                      self.zhaires_sim_detector_altitude,
-                                                                                      nearest_zenith_angle)
-                    escaled[i] = epeak * (energy[i] / self.e_zhaires_tau_shower) * (r_zhaires_tau_shower 
-                                                                                    / distance_shower_to_detector[i] )
+                   
+#                     r_zhaires_tau_shower = self.get_distance_decay_to_detector_zenith_exit(self.zhaires_sim_icethick,
+#                                                                                       nearest_decay_altitude,
+#                                                                                       self.zhaires_sim_detector_altitude,
+#                                                                                       nearest_zenith_angle)
+                    #dist_ratio = r_zhaires_tau_shower / distance_shower_to_detector[i]                   
+                    
+    
+                    dist_ratio_calc = zhaires_decay_obs[i]/self.exit_obs[i] #self.decay_obs[i]/self.exit_obs[i]
+
+                    escaled[i] = epeak * (energy[i] / self.e_zhaires_tau_shower) * ( dist_ratio_calc)
                     theta_peak[i] = parms[2]
         return escaled, theta_peak
+    
+    def decay_dist_det(self):
+        earth_theta = self.e_theta
+        earth_phi = self.e_phi
+        d = self.exit_decay
+        h = self.h
+        R = self.R +2
+        exit = np.radians(self.zenith_angle_deg)
+        
+        obs_x = 0
+        obs_y = 0
+        h_decay = d * np.cos(exit)
+        h_eff = h - h_decay
+        obs_z = R+h_eff
+        
+        chord = (R*np.sin(earth_theta) - d*np.sin(exit)) 
+        earth_theta_eff = np.arcsin(chord /R)
+        e_x_eff = R*np.sin(earth_theta_eff) * np.cos(earth_phi)
+        e_y_eff = R*np.sin(earth_theta_eff) * np.sin(earth_phi)
+        e_z_eff = R*np.cos(earth_theta_eff) 
+        
+        point_to_obs_x = obs_x - e_x_eff
+        point_to_obs_y = obs_y - e_y_eff
+        point_to_obs_z = obs_z - e_z_eff
+        
+        norm = np.sqrt(point_to_obs_x**2 + point_to_obs_y**2 + point_to_obs_z**2)
+        return norm
 
     def load_efield_interpolator(self,EFIELD_LUT_file_name):
         # the interpolator is for 10-MHz subbands and 
@@ -408,3 +473,31 @@ class event_detection:
 
         self.A_trig = self.A_ret*sum_P_trig/self.N
         return self.A_trig
+    
+    def voltage_test(self, Peak_Voltage_SNR, Vpk_to_Vpkpk_conversion, Peak_Voltage, Noise_Voltage,Peak_Voltage_Threshold, P_trig, decay_delta_view_angle, Max_Delta_Theta_View):
+        for k in range(0,self.N):
+            Peak_Voltage_SNR[k] = Vpk_to_Vpkpk_conversion*Peak_Voltage[k] / (2.0 * Noise_Voltage )
+
+        cutoff = Peak_Voltage_Threshold
+        nan_num = sum(np.isnan(Peak_Voltage_SNR))
+        num_num = len(Peak_Voltage_SNR) - nan_num
+        print num_num,nan_num
+        Peak_Voltage_SNR_num = Peak_Voltage_SNR[~np.isnan(Peak_Voltage_SNR)]
+        avg = np.average(Peak_Voltage_SNR_num)
+       
+    ##########
+        fig, ax = plt.subplots(num=1,figsize=(8,8))
+        
+        plt.xlabel("Voltage", fontsize=14)
+        plt.ylabel('Count', fontsize=14)
+        plt.axvline(cutoff)
+        n, bins, patches = plt.hist(x=Peak_Voltage_SNR_num, bins='auto', color='#0504aa',
+                           rwidth=0.85)
+        plt.title("ANITA RF Electric Field Voltages "+str(round(np.degrees(self.src_theta)))+r'$^{\circ}$', fontsize=16)
+        #ax.get_xaxis().set_major_formatter(mpl.ticker.StrMethodFormatter('{:.3g}'))
+        #plt.figtext(.5,-0.1,"Voltage Cutoff "+'{:.3g}'.format(cutoff), fontsize=12, ha='center')
+        plt.figtext(.5,-0.1,"Voltage Cutoff "+str(round(cutoff,6)), fontsize=12, ha='center')
+        # plt.semilogx()
+
+       
+        
