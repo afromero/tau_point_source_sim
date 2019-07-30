@@ -9,7 +9,8 @@ from scipy import stats
 class tau_event:
 
     # initialization
-    def __init__(self, theta_src, ice, E_cut, e_dot, phi_e, t_e, rho, E_nu,h,R,view_cut,  exit_angles,view_angles, A_g):
+    def __init__(self, theta_src, ice, E_cut, e_dot, phi_e, t_e, rho, E_nu,h,R,view_cut,  exit_angles,view_angles, A_g, 
+                 A0, N0):
         self.N = len(e_dot)
         self.theta_src = theta_src
         self.ice = str(int(ice))+'.0'
@@ -26,6 +27,8 @@ class tau_event:
         self.view = view_angles
         self.exit = exit_angles
         self.A_g = A_g
+        self.A0 = A0
+        self.N0 = N0
         if np.floor(E_nu)-E_nu == 0:
             self.TEScall = '1e+'+str(self_e_nu)
         else:
@@ -80,6 +83,7 @@ class tau_event:
         cut_rho = self.norm * cut_factor_idx
         cut_rho=cut_rho[np.nonzero(cut_rho)]
         
+        
         cut_exit = self.exit * cut_factor_idx
         cut_exit=cut_exit[np.nonzero(cut_exit)]
         
@@ -118,22 +122,20 @@ class tau_event:
                 shower_types.append("e")
         return fractions, shower_types
     
-    def decay_angle_alt(self,earth_theta,earth_phi,d,h,R, exit):
+    def decay_angle_alt(self,earth_theta,earth_phi,d,h,R, zenith):
         obs_x = 0
         obs_y = 0
-        h_decay = d * np.cos(exit)
-        h_eff = h - h_decay
-        obs_z = R+h_eff
+        obs_z = R+h
         
-        chord = (R*np.sin(earth_theta) - d*np.sin(exit)) 
-        earth_theta_eff = np.arcsin(chord /R)
-        e_x_eff = R*np.sin(earth_theta_eff) * np.cos(earth_phi)
-        e_y_eff = R*np.sin(earth_theta_eff) * np.sin(earth_phi)
-        e_z_eff = R*np.cos(earth_theta_eff) 
+        e_x_decay = R*np.sin(earth_theta)* np.cos(earth_phi) - d*np.sin(zenith)
+        e_y_decay = R*np.sin(earth_theta)* np.sin(earth_phi)
+        e_z_decay = R*np.cos(earth_theta) + d*np.cos(zenith)
+        emg_angle = np.pi/2 - zenith - self.theta_src
+        h_decay = d*np.sin(emg_angle)
         
-        point_to_obs_x = obs_x - e_x_eff
-        point_to_obs_y = obs_y - e_y_eff
-        point_to_obs_z = obs_z - e_z_eff
+        point_to_obs_x = obs_x - e_x_decay
+        point_to_obs_y = obs_y - e_y_decay
+        point_to_obs_z = obs_z - e_z_decay
         
         norm = np.sqrt(point_to_obs_x**2 + point_to_obs_y**2 + point_to_obs_z**2)
         
@@ -154,7 +156,8 @@ class tau_event:
         ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_exit, ret_view = self.event_energy_cut()
         ret_fractions,ret_types = self.E_shower(ret_tau_energy)
         ret_p_exit = self.P_exit(ret_exit)
-        ret_decay_angle, ret_decay_obs, ret_decay_alt = self.decay_angle_alt(ret_t_e,ret_phi_e,ret_exit_decay,self.h,self.R, ret_exit)
+        ret_zenith = ret_exit - self.theta_src
+        ret_decay_angle, ret_decay_obs, ret_decay_alt = self.decay_angle_alt(ret_t_e,ret_phi_e,ret_exit_decay,self.h,self.R,ret_zenith )
         return ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs,ret_exit, ret_view, ret_decay_alt, ret_decay_angle, ret_fractions,ret_types, ret_p_exit
     
     
@@ -163,9 +166,9 @@ class tau_event:
         ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs, ret_exit, ret_view, ret_decay_alt, ret_decay_angle, ret_fractions,ret_types, ret_p_exit = self.event_retention()
 
         try:
-            A_deg = self.A_g  * np.sum(ret_p_exit)
+            A_deg = self.A0 *1./float(self.N0) *  np.sum(ret_p_exit * ret_e_dot * (ret_view < self.th_v) * (ret_e_dot>0.) ) 
         except:
             A_deg = 0
-        return A_deg, ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs, ret_exit, ret_view, ret_decay_alt, ret_decay_angle, ret_fractions,ret_types, ret_p_exit
+        return A_deg, ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs, ret_exit, ret_view, ret_decay_alt, ret_decay_angle, ret_fractions,ret_types, ret_p_exit, self.A0,self.N0
 
 

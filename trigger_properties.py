@@ -13,11 +13,13 @@ reload(decay)
 class event_detection:
     def __init__(self, A_g, f_lo, f_high, Gain_dB, Nphased,
                  exit_angles,view_angles, decay_angle, ret_decay_alt, view_cut,
-                 ret_exit_obs, ret_exit_decay, ret_decay_obs,
-                 E_t, R, ice, h, e_theta, e_phi, src_theta, src_phi): 
+                 ret_exit_obs, ret_exit_decay, ret_decay_obs, ret_p_exit, ret_dot,
+                 E_t, R, ice, h, e_theta, e_phi, src_theta, src_phi, A0, N0): 
 
         self.N = len(exit_angles)
         self.A_ret = A_g
+        self.A0 = A0
+        self.N0 = N0
         self.zenith_angle_deg = np.degrees(exit_angles)
         self.view_angle_deg = np.degrees(view_angles)
         self.decay_angles = np.degrees(decay_angle)
@@ -26,7 +28,10 @@ class event_detection:
         self.exit_decay = ret_exit_decay
         self.decay_obs = ret_decay_obs
         self.decay_view_angle = decay_angle
+        self.decay_zenith_angle = self.decay_view_angle + src_theta
         self.decay_alt = ret_decay_alt
+        self.p_exit = ret_p_exit
+        self.dot = ret_dot
         
         self.EFIELD_LUT_file_name = "anita_generic_parameterization.npz"
         self.tau_energy = E_t
@@ -101,12 +106,14 @@ class event_detection:
                                                                                   self.zenith_angle_deg,
                                                                                   np.degrees(self.decay_view_angle),      
                                                                                   parm_2d)
+        
       
        
     #energy, decay_altitude, zenith_exit_deg,distance_shower_to_detector, theta_view, parm_2d
     
     
         Peak_Voltage =  self.E_to_V_signal(Peak_Efield, self.Gain_dB, self.Z_A, self.Z_L, self.Nphased)
+        print np.average(Peak_Voltage)
         
         Noise_Voltage = self.Det_Noise_Voltage()
         Peak_Voltage_Threshold = self.E_to_V_signal(self.Epk_to_pk_threshold, self.Gain_dB, 
@@ -296,7 +303,7 @@ class event_detection:
                     parms = parm_2d[i_ze, i_d]
 
                     epeak = self.lorentzian_gaussian_background_func(theta_view[i], *parms)
-                    
+                    #epeak = parms[0]
                     # Distance from the shower to the detector for the parameterized LDFs 
                     # at different decay altitudes and decay zenith angles
                    
@@ -306,10 +313,11 @@ class event_detection:
 #                                                                                       nearest_zenith_angle)
                     #dist_ratio = r_zhaires_tau_shower / distance_shower_to_detector[i]                   
                     
-    
-                    dist_ratio_calc = zhaires_decay_obs[i]/self.exit_obs[i] #self.decay_obs[i]/self.exit_obs[i]
-
-                    escaled[i] = epeak * (energy[i] / self.e_zhaires_tau_shower) * ( dist_ratio_calc)
+                    #print epeak
+            
+                    dist_ratio_calc = zhaires_decay_obs[i]/self.decay_obs[i] #self.decay_obs[i]/self.exit_obs[i]
+                    #print  dist_ratio_calc 
+                    escaled[i] = epeak * (energy[i] / self.e_zhaires_tau_shower) * (dist_ratio_calc)
                     theta_peak[i] = parms[2]
         return escaled, theta_peak
     
@@ -471,7 +479,7 @@ class event_detection:
                 P_trig[k] = 1.
             sum_P_trig  += P_trig[k]
 
-        self.A_trig = self.A_ret*sum_P_trig/self.N
+        self.A_trig = self.A0 *1./float(self.N0) *  np.sum(P_trig * self.p_exit* self.dot * (np.radians(self.view_angle_deg) < self.view_cut) * (self.dot>0.) ) 
         return self.A_trig
     
     def voltage_test(self, Peak_Voltage_SNR, Vpk_to_Vpkpk_conversion, Peak_Voltage, Noise_Voltage,Peak_Voltage_Threshold, P_trig, decay_delta_view_angle, Max_Delta_Theta_View):

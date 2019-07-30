@@ -129,7 +129,7 @@ class Area:
         A0= self.A_theta_patch(t_e,phi_e)
         A_deg = A0 *1./float(self.n) *  np.sum(dot * (view_angle < self.th_v) * (dot>0.) ) 
         
-        return A_deg, ret_phi_e, ret_t_e, ret_view_angle, ret_exit_angle, ret_norm, ret_dot
+        return A_deg, ret_phi_e, ret_t_e, ret_view_angle, ret_exit_angle, ret_norm, ret_dot, A0, self.n
 
 
 
