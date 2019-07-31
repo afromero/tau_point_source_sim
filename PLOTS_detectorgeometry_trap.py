@@ -97,11 +97,10 @@ class Area:
         obs_dot = point_to_obs_hat_x*r_x+point_to_obs_hat_y*r_y+point_to_obs_hat_z*r_z
         view_angle = np.arccos(obs_dot)
         
-        exit_dot = point_to_obs_hat_x*e_x+point_to_obs_hat_y*e_y+point_to_obs_hat_z*e_z
-        exit_angle = np.arccos(exit_dot)
-        emg_angle = np.pi/2 - exit_angle
+        zenith_dot = point_to_obs_hat_x*e_x+point_to_obs_hat_y*e_y+point_to_obs_hat_z*e_z
+        exit_angle = np.arccos(zenith_dot)
 
-        return view_angle,exit_angle, emg_angle, flight_path
+        return view_angle,exit_angle, flight_path
    
         ###################################
     def event_retention(self):
@@ -110,15 +109,13 @@ class Area:
         r_x, r_y, r_z = self.coords(self.t_src, self.phi_src + np.pi) 
         t_e,phi_e = self.earth_locs(earth_t_min, earth_t_max, phi_E_min, phi_E_max)
         e_x,e_y,e_z = self.coords(t_e,phi_e)
-        view_angle, exit_angle,emg_angle, flight_path = self.view_angle_dist_det(e_x,e_y,e_z,r_x, r_y,r_z)
+        view_angle, exit_angle, flight_path = self.view_angle_dist_det(e_x,e_y,e_z,r_x, r_y,r_z)
         dot = self.dot_prod(e_x,e_y,e_z,r_x, r_y,r_z)
       
         ret_view_angle = view_angle *  (view_angle < self.th_v) * (dot>0.)
         ret_view_angle=ret_view_angle[np.nonzero(ret_view_angle)]
         ret_exit_angle = exit_angle *  (view_angle < self.th_v) * (dot>0.)
         ret_exit_angle=ret_exit_angle[np.nonzero(ret_exit_angle)]
-        ret_emg_angle = emg_angle *  (view_angle < self.th_v) * (dot>0.)
-        ret_emg_angle=ret_emg_angle[np.nonzero(ret_emg_angle)]
         ret_norm = flight_path *  (view_angle < self.th_v) * (dot>0.)
         ret_norm=ret_norm[np.nonzero(ret_norm)]
         ret_dot = dot *  (view_angle < self.th_v) * (dot>0.)
@@ -130,9 +127,9 @@ class Area:
         ret_t_e=ret_t_e[np.nonzero(ret_t_e)]
         
         A0= self.A_theta_patch(t_e,phi_e)
-        A_deg = A0 *1./float(self.n) *  np.sum(dot * (view_angle < self.th_v) * (dot>0.) ) 
+        A_deg = A0 *1./float(self.n) *  np.sum(dot * (view_angle < self.th_v) *(view_angle > (self.th_v-np.radians(0.1)))* (dot>0.) ) 
         
-        return A_deg, ret_phi_e, ret_t_e, ret_view_angle, ret_exit_angle, ret_emg_angle, ret_norm, ret_dot, A0, self.n
+        return A_deg, ret_phi_e, ret_t_e, ret_view_angle, ret_exit_angle, ret_norm, ret_dot, A0, self.n
 
 
 

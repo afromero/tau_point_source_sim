@@ -12,9 +12,9 @@ reload(decay)
 
 class event_detection:
     def __init__(self, A_g, f_lo, f_high, Gain_dB, Nphased,
-                 exit_angles,view_angles, decay_angle, ret_decay_alt, view_cut,
+                 exit_angles,emg_angles, view_angles, decay_angle, ret_decay_alt, view_cut,
                  ret_exit_obs, ret_exit_decay, ret_decay_obs, ret_p_exit, ret_dot,
-                 E_t, R, ice, h, e_theta, e_phi, src_theta, src_phi, A0, N0): 
+                 E_t, R, ice, h, e_theta, e_phi, src_theta, A0, N0): 
 
         self.N = len(exit_angles)
         self.A_ret = A_g
@@ -23,6 +23,7 @@ class event_detection:
         self.zenith_angle_deg = np.degrees(exit_angles)
         self.view_angle_deg = np.degrees(view_angles)
         self.decay_angles = np.degrees(decay_angle)
+        self.emg_angles = np.degrees(emg_angles)
         self.view_cut = view_cut #3.16
         self.exit_obs = ret_exit_obs
         self.exit_decay = ret_exit_decay
@@ -32,6 +33,7 @@ class event_detection:
         self.decay_alt = ret_decay_alt
         self.p_exit = ret_p_exit
         self.dot = ret_dot
+       
         
         self.EFIELD_LUT_file_name = "anita_generic_parameterization.npz"
         self.tau_energy = E_t
@@ -45,7 +47,7 @@ class event_detection:
         self.e_theta = e_theta
         self.e_phi = e_phi 
         self.src_theta = src_theta
-        self.src_phi = src_phi
+        self.src_phi = np.radians(180)
         
         self.noise = 'default'
         self.Vpk_to_Vpkpk_conversion = 1.4
@@ -135,7 +137,42 @@ class event_detection:
     
 
 ####################################################################################################
-
+    def RF_efield_PLOT(self):
+        #efield_interpolator_list = self.load_efield_interpolator(self.EFIELD_LUT_file_name) 
+        
+        x_exit, y_exit, z_exit =  self.coords(self.e_theta, self.e_phi)
+        x_exit, y_exit, z_exit = self.R * x_exit, self.R *y_exit, self.R *z_exit
+        k_x, k_y, k_z = self.coords(self.src_theta, self.src_phi)
+        x_det, y_det, z_det = 0,0,self.R + self.h 
+        # print self.exit_decay
+#         x_decay, y_decay, z_decay, decay_view_angle, dist_decay_to_detector = self.decay_point_geom_loop(k_x, k_y, k_z, 
+#                                                                                                     x_exit, y_exit, z_exit,
+#                                                                                                     self.exit_decay, 
+#                                                                                                     x_det, y_det, z_det)
+        
+#         zhs_decay_altitude = self.get_altitude(x_decay, y_decay, z_decay, self.R+self.zhaires_sim_icethick)         
+        
+#         zenith_angle_decay = self.get_zenith_angle(k_x, k_y, k_z, x_decay, y_decay, z_decay) 
+        parm_2d =self.load_efield_parameterization(self.EFIELD_LUT_file_name)
+       
+ 
+#         Peak_Efield, Theta_Peak = self.efield_anita_generic_parameterization_decay_zenith(pow(10, self.tau_energy),
+#                                                                                           zhs_decay_altitude,
+#                                                                                           np.degrees(zenith_angle_decay),  
+#                                                                                           dist_decay_to_detector, 
+#                                                                                           np.degrees(decay_view_angle), 
+#                                                                                           parm_2d)
+      
+        PLOT_decay_alts = np.asarray([np.random.choice(np.linspace(0,9,10)) for x in range(self.N)])
+        
+        Peak_Efield, Theta_Peak = self.efield_anita_generic_parameterization_decay_zenith(pow(10, self.tau_energy),
+                                                                                  PLOT_decay_alts,
+                                                                                  self.zenith_angle_deg,
+                                                                                  np.degrees(self.decay_view_angle),      
+                                                                                  parm_2d)
+        
+        return PLOT_decay_alts, Peak_Efield, np.degrees(self.decay_view_angle), self.emg_angles   
+    
     def get_decay_zenith_angle(self, ground_elevation, decay_altitude, X0):
         R_e=self.R
         A = X0
