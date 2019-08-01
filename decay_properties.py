@@ -130,11 +130,14 @@ class tau_event:
         obs_y = 0
         obs_z = R+h
         
-        e_x_decay = R*np.sin(earth_theta)* np.cos(earth_phi) - d*np.sin(zenith)
-        e_y_decay = R*np.sin(earth_theta)* np.sin(earth_phi)
-        e_z_decay = R*np.cos(earth_theta) + d*np.cos(zenith)
         emg_angle = np.pi/2 - zenith - self.theta_src
         h_decay = d*np.sin(emg_angle)
+        x_decay = d*np.cos(emg_angle)
+        e_x_decay = R*np.sin(earth_theta)* np.cos(earth_phi) +x_decay
+        e_y_decay = R*np.sin(earth_theta)* np.sin(earth_phi)
+        e_z_decay = R*np.cos(earth_theta) +h_decay
+        
+        
         
         point_to_obs_x = obs_x - e_x_decay
         point_to_obs_y = obs_y - e_y_decay
