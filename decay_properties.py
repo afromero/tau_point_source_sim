@@ -10,7 +10,7 @@ class tau_event:
 
     # initialization
     def __init__(self, theta_src, ice, E_cut, e_dot, phi_e, t_e, rho, E_nu,h,R,view_cut,  exit_angles, emg_angles, view_angles, A_g, 
-                 A0, N0):
+                 A0, N0,cut1,cut2):
         self.N = len(e_dot)
         self.theta_src = theta_src
         self.ice = str(int(ice))+'.0'
@@ -34,8 +34,8 @@ class tau_event:
             self.TEScall = '1e+'+str(self_e_nu)
         else:
             self.TEScall = '3e+'+str(int(np.floor(E_nu)))
-        self.energy_cut = 1
-        self.decay_cut = 1
+        self.energy_cut = cut1
+        self.decay_cut = cut2
  
         self.TES = TauExitSimulator.Tau_Exit_Simulator('./high_statistics/'+self.ice+'km_ice_midCS_stdEL/LUT_'+self.TEScall+'_eV.npz')
         self.TDS = TauDecaySimulator.Tau_Decay_Simulator()
