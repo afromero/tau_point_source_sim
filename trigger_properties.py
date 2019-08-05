@@ -115,9 +115,10 @@ class event_detection:
     
     
         Peak_Voltage =  self.E_to_V_signal(Peak_Efield, self.Gain_dB, self.Z_A, self.Z_L, self.Nphased)
-        print np.average(Peak_Voltage)
+        #print np.average(Peak_Voltage)
         
         Noise_Voltage = self.Det_Noise_Voltage()
+        
         Peak_Voltage_Threshold = self.E_to_V_signal(self.Epk_to_pk_threshold, self.Gain_dB, 
                                                self.Z_A,self.Z_L,self.Nphased) / self.Vpk_to_Vpkpk_conversion
         
@@ -172,9 +173,11 @@ class event_detection:
                                                                                   np.degrees(self.decay_view_angle),      
                                                                                   parm_2d)
         
+        
+            
         return PLOT_decay_alts, Peak_Efield, np.degrees(self.decay_view_angle), self.emg_angles  
     
-    def RF_efield(self):
+    def RF_voltage(self):
         #efield_interpolator_list = self.load_efield_interpolator(self.EFIELD_LUT_file_name) 
         
         x_exit, y_exit, z_exit =  self.coords(self.e_theta, self.e_phi)
@@ -208,8 +211,28 @@ class event_detection:
                                                                                   self.zenith_angle_deg,
                                                                                   np.degrees(self.decay_view_angle),      
                                                                                   parm_2d)
+        Peak_Voltage =  self.E_to_V_signal(Peak_Efield, self.Gain_dB, self.Z_A, self.Z_L, self.Nphased)
+        #print np.average(Peak_Voltage)
         
-        return PLOT_decay_alts, Peak_Efield, np.degrees(self.decay_view_angle), self.emg_angles   
+        Noise_Voltage = self.Det_Noise_Voltage()
+        
+        Peak_Voltage_Threshold = self.E_to_V_signal(self.Epk_to_pk_threshold, self.Gain_dB, 
+                                               self.Z_A,self.Z_L,self.Nphased) / self.Vpk_to_Vpkpk_conversion
+        print Peak_Voltage_Threshold
+        Peak_Voltage_SNR = self.Vpk_to_Vpkpk_conversion*Peak_Voltage / (2.0 * Noise_Voltage )
+        
+
+        for k in range(0,self.N):
+        # ANITA defines SNR as = Vpk-pk / (2. * Vrms)
+        # Asymmetry of the pulse means that the Vpk-pk != 2 Vpk
+        # ZHAireS sims are Vpk, so we have to convert
+            P_trig = self.P_trig
+            Max_Delta_Theta_View = self.Max_Delta_Theta_View
+            if( (Peak_Voltage_SNR[k] > Peak_Voltage_Threshold) and (np.degrees(self.decay_view_angle[k]) < Max_Delta_Theta_View)):
+                P_trig[k] = 1.
+        
+        return PLOT_decay_alts, Peak_Voltage_SNR, np.degrees(self.decay_view_angle), self.emg_angles, P_trig, Peak_Voltage_Threshold
+    
     
     def get_decay_zenith_angle(self, ground_elevation, decay_altitude, X0):
         R_e=self.R
@@ -482,6 +505,7 @@ class event_detection:
 
         #print Gamma, R_A, Z_L / (Z_A + Z_L), eff_load, Z_A, Z_L 
         V_A = 2. * E_pk * (self.speed_of_light*1.e3)/(freq_MHz * 1.e6) * np.sqrt(R_A/self.Z_0 * pow(10., Gain_dB/10.)/4./np.pi * eff_load) * Nphased
+        
         V_L = V_A * Z_L / (Z_A + Z_L) # V_L = 1/2 * V_A for a perfectly matched antenna
         return V_L
 
