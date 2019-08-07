@@ -218,20 +218,21 @@ class event_detection:
         
         Peak_Voltage_Threshold = self.E_to_V_signal(self.Epk_to_pk_threshold, self.Gain_dB, 
                                                self.Z_A,self.Z_L,self.Nphased) / self.Vpk_to_Vpkpk_conversion
-        print Peak_Voltage_Threshold
+        print Theta_Peak
         Peak_Voltage_SNR = self.Vpk_to_Vpkpk_conversion*Peak_Voltage / (2.0 * Noise_Voltage )
         
-
+        decay_delta_view_angle = np.abs(Theta_Peak - np.degrees(self.decay_view_angle))
+        
+        P_trig = self.P_trig
         for k in range(0,self.N):
         # ANITA defines SNR as = Vpk-pk / (2. * Vrms)
         # Asymmetry of the pulse means that the Vpk-pk != 2 Vpk
         # ZHAireS sims are Vpk, so we have to convert
-            P_trig = self.P_trig
             Max_Delta_Theta_View = self.Max_Delta_Theta_View
-            if( (Peak_Voltage_SNR[k] > Peak_Voltage_Threshold) and (np.degrees(self.decay_view_angle[k]) < Max_Delta_Theta_View)):
+            if( (Peak_Voltage_SNR[k] > Peak_Voltage_Threshold) and (decay_delta_view_angle[k] < Max_Delta_Theta_View)):
                 P_trig[k] = 1.
         
-        return PLOT_decay_alts, Peak_Voltage_SNR, np.degrees(self.decay_view_angle), self.emg_angles, P_trig, Peak_Voltage_Threshold
+        return PLOT_decay_alts, Peak_Voltage_SNR, decay_delta_view_angle, np.degrees(self.decay_view_angle), self.emg_angles, P_trig, Peak_Voltage_Threshold
     
     
     def get_decay_zenith_angle(self, ground_elevation, decay_altitude, X0):
@@ -573,8 +574,8 @@ class event_detection:
         # Asymmetry of the pulse means that the Vpk-pk != 2 Vpk
         # ZHAireS sims are Vpk, so we have to convert
             Peak_Voltage_SNR[k] = Vpk_to_Vpkpk_conversion*Peak_Voltage[k] / (2.0 * Noise_Voltage )
-            if (Peak_Voltage[k] > Peak_Voltage_Threshold):
-            #if( (Peak_Voltage[k] > Peak_Voltage_Threshold) and (decay_delta_view_angle[k] < Max_Delta_Theta_View)):
+            #if (Peak_Voltage[k] > Peak_Voltage_Threshold):
+            if( (Peak_Voltage[k] > Peak_Voltage_Threshold) and (decay_delta_view_angle[k] < Max_Delta_Theta_View)):
                 P_trig[k] = 1.
             sum_P_trig  += P_trig[k]
 
