@@ -43,16 +43,15 @@ class tau_event:
     def E_tau(self):
         vals =np.asarray([])
         for i in range(self.N):
-            try:
-                vals = np.append(vals,self.TES.sample_energies_th_exit(np.degrees(self.exit[i])))
-            except:
-                vals =np.append(vals,0)
-        #print vals[:10]
+            #print self.TES.get_closest_indices(np.degrees(self.exit[i]), self.TES.th_exit)
+            vals = np.append(vals,self.TES.sample_energies_th_exit(np.degrees(self.exit[i])))
         return vals
     
     def decay_distance_det(self,tau_energies):
-        decay_dist = self.TDS.sample_range(10**(tau_energies), len(tau_energies))
-        #print decay_dist
+        tau_energies_exp = np.asarray([10**tau_energies[j] for j in range(len(tau_energies))])
+        decay_dist = self.TDS.sample_range(tau_energies_exp, len(tau_energies))
+#         print "Energy", np.median(tau_energies_exp)
+#         print "Decay Distance", np.median(decay_dist)
         return decay_dist
     
     def event_energy_cut(self):
@@ -65,7 +64,7 @@ class tau_event:
             cut_factor_idx =  np.asarray((tau_energy > self.e_cut))
         elif self.energy_cut + self.decay_cut == 2: 
             cut_factor_idx =  np.asarray((tau_energy > self.e_cut) * (decay_dist < self.norm))
-       
+        
         cut_tau_energy = tau_energy * cut_factor_idx
         cut_tau_energy=cut_tau_energy[np.nonzero(cut_tau_energy)]
         
@@ -93,6 +92,7 @@ class tau_event:
         cut_view = self.view * cut_factor_idx
         cut_view=cut_view[np.nonzero(cut_view)]
         
+        #print min(cut_rho - cut_decay_dist)
         return cut_e_dot, cut_phi_e, cut_t_e, cut_tau_energy, cut_rho, cut_decay_dist, cut_exit, cut_emg, cut_view
     
     
