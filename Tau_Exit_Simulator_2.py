@@ -149,15 +149,19 @@ class Tau_Exit_Simulator:
     def sample_energies_th_exit(self, th_exit_val):
         # find closest indices
         idx_lo, idx_hi = self.get_closest_indices(th_exit_val, self.th_exit)
-        #print idx_lo, idx_hi
         u = np.random.uniform(0., 1.)
         E_lo = self.sample_array_energies(u, idx_lo)
         E_hi = self.sample_array_energies(u, idx_hi)
+        
+#         if E_lo == 0:
+#             val = E_hi
+#         else:
         val =self.lin_interp(th_exit_val, 
                              self.th_exit[idx_lo], 
                              self.th_exit[idx_hi],
                              E_lo,
                              E_hi)
+    
         return val
         
     #def get_P_exit(th_exit):

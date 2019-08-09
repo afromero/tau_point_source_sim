@@ -95,13 +95,7 @@ class event_detection:
 #         zenith_angle_decay = self.get_zenith_angle(k_x, k_y, k_z, x_decay, y_decay, z_decay) 
         parm_2d =self.load_efield_parameterization(self.EFIELD_LUT_file_name)
        
- 
-#         Peak_Efield, Theta_Peak = self.efield_anita_generic_parameterization_decay_zenith(pow(10, self.tau_energy),
-#                                                                                           zhs_decay_altitude,
-#                                                                                           np.degrees(zenith_angle_decay),  
-#                                                                                           dist_decay_to_detector, 
-#                                                                                           np.degrees(decay_view_angle), 
-#                                                                                           parm_2d)
+
       
         Peak_Efield, Theta_Peak = self.efield_anita_generic_parameterization_decay_zenith(pow(10, self.tau_energy),
                                                                                   self.decay_alt,
@@ -213,7 +207,7 @@ class event_detection:
         # Asymmetry of the pulse means that the Vpk-pk != 2 Vpk
         # ZHAireS sims are Vpk, so we have to convert
             Max_Delta_Theta_View = self.Max_Delta_Theta_View
-            if( (Peak_Voltage_SNR[k] > Peak_Voltage_Threshold) and (decay_delta_view_angle[k] < Max_Delta_Theta_View)):
+            if Peak_Voltage[k] > Peak_Voltage_Threshold : #and (decay_delta_view_angle[k] < Max_Delta_Theta_View))
                 P_trig[k] = 1.
                 
         
@@ -369,7 +363,7 @@ class event_detection:
         theta_peak = np.zeros(len(energy))
         
         zhaires_decay_obs = self.decay_dist_det()
-        for i in range(len(theta_view)):
+        for i in range(len(energy)):
             if decay_altitude[i] >= 0: # if the decay altitude < 0, leave the electric field at 0
                 # find the nearest neighbor for both the zenith angle at the exit point and the decay altitude
                 i_ze = self.find_nearest(zenith_list, zenith_exit_deg[i])[0]
@@ -560,7 +554,7 @@ class event_detection:
         # ZHAireS sims are Vpk, so we have to convert
             Peak_Voltage_SNR[k] = Vpk_to_Vpkpk_conversion*Peak_Voltage[k] / (2.0 * Noise_Voltage )
             #if (Peak_Voltage[k] > Peak_Voltage_Threshold):
-            if( (Peak_Voltage[k] > Peak_Voltage_Threshold) and (decay_delta_view_angle[k] < Max_Delta_Theta_View)):
+            if Peak_Voltage[k] > Peak_Voltage_Threshold: #decay_delta_view_angle[k] < Max_Delta_Theta_View
                 P_trig[k] = 1.
             sum_P_trig  += P_trig[k]
 
