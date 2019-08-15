@@ -39,11 +39,15 @@ class Tau_Exit_Simulator:
     def get_closest_indices(self, _val, _array):
         idx = np.argmin(np.abs(_array-_val))
         
-        if idx+1 == len(_array):
-            idx = idx - 1
+        if idx+1 == len(_array) or idx == 0:
+            return idx, idx
             
         idx_lo = idx
         idx_hi = idx+1
+
+#         idx = np.argmin(np.abs(_array-_val))
+#         idx_lo = idx
+#         idx_hi = idx+1
             
         if _array[idx_hi] > _array[idx_lo]:
             if _val>_array[idx]:
@@ -63,6 +67,7 @@ class Tau_Exit_Simulator:
         return idx_lo, idx_hi
         
     def sample_array_energies(self, u, data_index):
+        #print  len(self.data_array[data_index])
         if len(self.data_array[data_index]) == 0: return 0.
         N = float(len(self.data_array[data_index])-1.)
         while N<0:
@@ -153,14 +158,14 @@ class Tau_Exit_Simulator:
         E_lo = self.sample_array_energies(u, idx_lo)
         E_hi = self.sample_array_energies(u, idx_hi)
         
-#         if E_lo == 0:
-#             val = E_hi
-#         else:
-        val =self.lin_interp(th_exit_val, 
-                             self.th_exit[idx_lo], 
-                             self.th_exit[idx_hi],
-                             E_lo,
-                             E_hi)
+        if E_hi <14:
+            val = E_lo
+        else:
+            val =self.lin_interp(th_exit_val, 
+                                 self.th_exit[idx_lo], 
+                                 self.th_exit[idx_hi],
+                                 E_lo,
+                                 E_hi)
     
         return val
         
