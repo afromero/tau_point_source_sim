@@ -196,7 +196,7 @@ class event_detection:
         
         Peak_Voltage_Threshold = self.E_to_V_signal(self.Epk_to_pk_threshold, self.Gain_dB, 
                                                self.Z_A,self.Z_L,self.Nphased) / self.Vpk_to_Vpkpk_conversion
-        print Theta_Peak
+   
         Peak_Voltage_SNR = self.Vpk_to_Vpkpk_conversion*Peak_Voltage / (2.0 * Noise_Voltage )
         
         decay_delta_view_angle = np.abs(Theta_Peak - np.degrees(self.decay_view_angle))

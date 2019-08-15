@@ -42,63 +42,54 @@ class tau_event:
     def E_tau(self):
         vals =np.asarray([])
         for i in range(self.N):
-            #print self.TES.get_closest_indices(np.degrees(self.exit[i]), self.TES.th_exit)
-            vals = np.append(vals,self.TES.sample_energies_th_exit(np.degrees(self.exit[i])))
+#            TES_idx_lo, TES_idx_hi= self.TES.get_closest_indices(np.degrees(self.exit[i]),self.TES.th_exit) 
+#             print "TES low index:", TES_idx_lo, " TES low exit angle:", self.TES.th_exit[TES_idx_lo]
+#             print " Exit Angle:",np.degrees(self.exit[i])
+#             print "TES high index:", TES_idx_hi, " TES high exit angle:", self.TES.th_exit[TES_idx_hi]
+            sample_energy = self.TES.sample_energies_th_exit(np.degrees(self.exit[i]))
+            vals = np.append(vals,sample_energy)
+        vals = np.nan_to_num(vals)
         return vals
     
-    def decay_distance_det(self,tau_energies):
-        tau_energies_exp = np.asarray([10**tau_energies[j] for j in range(len(tau_energies))])
-        decay_dist = self.TDS.sample_range(tau_energies_exp, len(tau_energies))
+    def decay_distance_det(self,tau_energies_exp):
+        decay_dist =np.asarray([])
+        for i in range(self.N):
+            try:
+                val = self.TDS.sample_range(tau_energies_exp[i], 1)
+            except:
+                val =0
+            decay_dist = np.append(decay_dist, val)
 #         print "Energy", np.median(tau_energies_exp)
 #         print "Decay Distance", np.median(decay_dist)
         return decay_dist
     
     def event_energy_cut(self):
         tau_energy = self.E_tau()
+        tau_energies_exp = np.asarray([10**tau_energy[j] for j in range(len(tau_energy))])
         fractions,types = self.E_shower(tau_energy)
+        shower_eng_exp = fractions * tau_energies_exp
+        shower_eng = np.asarray([np.log10(shower_eng_exp[j]) for j in range(len(shower_eng_exp))])
         
-        shower_eng = fractions * tau_energy
-        decay_dist= self.decay_distance_det(tau_energy)
+        decay_dist= self.decay_distance_det(tau_energies_exp)
 
         if self.decay_cut==0:
-            cut_factor_idx = 1
+            cut_factor_idx = [True for x in range(len(decay_dist))]
         elif self.decay_cut == 1:
-            cut_factor_idx =  np.asarray((decay_dist < self.norm))
+            cut_factor_idx =  np.asarray((decay_dist < self.norm) * (tau_energy >0.0))
+            cut_factor_idx=[i for i, x in enumerate(cut_factor_idx) if x==True]
         
-        
-        
-        cut_decay_dist = decay_dist * cut_factor_idx
-        cut_decay_dist=cut_decay_dist[np.nonzero(cut_decay_dist)]
-        
-        cut_e_dot = self.e_dot *cut_factor_idx
-        cut_e_dot=cut_e_dot[np.nonzero(cut_e_dot)]
-        
-        cut_phi_e = self.phi_e *cut_factor_idx
-        cut_phi_e=cut_phi_e[np.nonzero(cut_phi_e)]
-     
-    
-        
-        cut_t_e = self.t_e * cut_factor_idx
-        cut_t_e= cut_t_e[np.nonzero(cut_t_e)]
-        
-        cut_rho = self.norm * cut_factor_idx
-        cut_rho=cut_rho[np.nonzero(cut_rho)]
-        
-        cut_tau_energy = tau_energy * cut_factor_idx
-        cut_tau_energy=cut_tau_energy[np.nonzero(cut_rho)]
-        
-        cut_exit = self.exit * cut_factor_idx
-        cut_exit=cut_exit[np.nonzero(cut_exit)]
-        
-        cut_emg = self.emg * cut_factor_idx
-        cut_emg=cut_emg[np.nonzero(cut_emg)]
-        
-        cut_view = self.view * cut_factor_idx
-        cut_view=cut_view[np.nonzero(cut_view)]
-        
-        cut_shower_eng=shower_eng[np.nonzero(cut_view)]
-        
+        cut_decay_dist = decay_dist[cut_factor_idx]
+        cut_e_dot = self.e_dot[cut_factor_idx]
+        cut_phi_e = self.phi_e[cut_factor_idx]
+        cut_t_e = self.t_e[cut_factor_idx] 
+        cut_rho = self.norm[cut_factor_idx] 
+        cut_tau_energy = tau_energy[cut_factor_idx] 
+        cut_exit = self.exit[cut_factor_idx] 
+        cut_emg = self.emg[cut_factor_idx] 
+        cut_view = self.view[cut_factor_idx]
+        cut_shower_eng=shower_eng[cut_factor_idx]
         cut_types =types
+        
         
         return cut_e_dot, cut_phi_e, cut_t_e, cut_tau_energy, cut_rho, cut_decay_dist, cut_exit, cut_emg, cut_view, cut_shower_eng, cut_types
     
@@ -165,7 +156,7 @@ class tau_event:
     
     def event_retention(self):
         ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_exit, ret_emg, ret_view, ret_shower_eng,ret_types = self.event_energy_cut()
-        ret_p_exit = self.P_exit(ret_exit)
+        ret_p_exit = np.nan_to_num(self.P_exit(ret_exit))
         ret_zenith = ret_exit - self.theta_src
         ret_decay_angle, ret_decay_obs, ret_decay_alt = self.decay_angle_alt(ret_t_e,ret_phi_e,ret_exit_decay,self.h,self.R,ret_zenith )
         return ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs,ret_exit, ret_emg, ret_view, ret_decay_alt, ret_decay_angle, ret_shower_eng,ret_types, ret_p_exit
@@ -174,7 +165,7 @@ class tau_event:
 ##########
     def degree_eff_area(self):
         ret_e_dot, ret_phi_e, ret_t_e, ret_tau_energy, ret_exit_obs, ret_exit_decay, ret_decay_obs, ret_exit, ret_emg, ret_view, ret_decay_alt, ret_decay_angle, ret_shower_eng,ret_types, ret_p_exit = self.event_retention()
-
+        
         try:
             A_deg = self.A0 *1./float(self.N0) *  np.sum(ret_p_exit * ret_e_dot * (ret_view < self.th_v) * (ret_e_dot>0.) ) 
         except:
