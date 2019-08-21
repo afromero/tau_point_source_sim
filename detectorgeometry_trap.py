@@ -97,11 +97,8 @@ class Area:
         obs_dot = point_to_obs_hat_x*r_x+point_to_obs_hat_y*r_y+point_to_obs_hat_z*r_z
         view_angle = np.arccos(obs_dot)
         
-        exit_dot = point_to_obs_hat_x*e_x+point_to_obs_hat_y*e_y+point_to_obs_hat_z*e_z
-        exit_angle = np.arccos(exit_dot)
-        emg_angle = np.pi/2 - exit_angle
 
-        return view_angle,exit_angle, emg_angle, flight_path
+        return view_angle, flight_path
    
         ###################################
     def event_retention(self):
@@ -110,8 +107,10 @@ class Area:
         r_x, r_y, r_z = self.coords(self.t_src, self.phi_src + np.pi) 
         t_e,phi_e = self.earth_locs(earth_t_min, earth_t_max, phi_E_min, phi_E_max)
         e_x,e_y,e_z = self.coords(t_e,phi_e)
-        view_angle, exit_angle,emg_angle, flight_path = self.view_angle_dist_det(e_x,e_y,e_z,r_x, r_y,r_z)
+        view_angle, flight_path = self.view_angle_dist_det(e_x,e_y,e_z,r_x, r_y,r_z)
         dot = self.dot_prod(e_x,e_y,e_z,r_x, r_y,r_z)
+        exit_angle = np.arccos(dot)
+        emg_angle = np.pi/2 - exit_angle
       
         ret_view_angle = view_angle *  (view_angle < self.th_v) * (dot>0.)
         ret_view_angle=ret_view_angle[np.nonzero(ret_view_angle)]
