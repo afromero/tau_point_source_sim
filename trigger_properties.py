@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.axes as ax
 import matplotlib as mpl
 import sys
-sys.path.append('nutau_sim/03_Detector')
-sys.path.append('nutau_sim/applications/ANITA_upper_bound')
+sys.path.append('../nutau_acceptance/03_Detector/')
 import tau_Shower_Efield_ANITA_Sim_lib  as RF_functions
 reload(RF_functions)
 import decay_properties as decay
