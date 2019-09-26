@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.axes as ax
 import matplotlib as mpl
 import sys
-sys.path.append('../nutau_acceptance/03_Detector/')
+import os
+sys.path.append(os.environ['TAU_ACC_DIR'] + '/03_Detector/')
 import tau_Shower_Efield_ANITA_Sim_lib  as RF_functions
 reload(RF_functions)
 import decay_properties as decay
@@ -34,7 +35,7 @@ class event_detection:
         self.dot = ret_dot
        
         
-        self.EFIELD_LUT_file_name = "anita_generic_parameterization.npz"
+        self.EFIELD_LUT_file_name = os.environ['TAU_ACC_EFIELD_LUT_DIR'] + "/anita_generic_parameterization.npz"
         self.tau_energy = E_t
         self.f_Lo = f_lo
         self.f_High = f_high

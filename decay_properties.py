@@ -1,5 +1,5 @@
-
 import numpy as np
+import os
 import Tau_Exit_Simulator_2 as TauExitSimulator
 import Tau_Decay_Simulator as TauDecaySimulator
 reload(TauDecaySimulator)
@@ -36,7 +36,7 @@ class tau_event:
             self.TEScall = '3e+'+str(int(np.floor(E_nu)))
         self.decay_cut = cut
  
-        self.TES = TauExitSimulator.Tau_Exit_Simulator('./high_statistics/'+self.ice+'km_ice_midCS_stdEL/LUT_'+self.TEScall+'_eV.npz')
+        self.TES = TauExitSimulator.Tau_Exit_Simulator(os.environ['TAU_ACC_LUT_DIR']+'/'+self.ice+'km_ice_midCS_stdEL/LUT_'+self.TEScall+'_eV.npz')
         self.TDS = TauDecaySimulator.Tau_Decay_Simulator()
     
     def E_tau(self):
